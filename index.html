@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Runner — Hand & Mouse Control</title>
+<style>
+:root{--cyan:#5ffcff;--pink:#ff4fd8;--bg:#070b18}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#17224a 0%,#070b18 58%);color:#f3f7ff;font-family:system-ui,Segoe UI,Arial,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}.app{width:min(1100px,100%)}header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}h1{margin:0;font-size:clamp(24px,4vw,38px);letter-spacing:2px;text-shadow:0 0 18px #5ffcff80}h1 span{color:var(--cyan)}.tag{color:#a9b7df;font-size:13px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 265px;gap:14px}.game-wrap{position:relative;border:1px solid #5ffcff55;border-radius:18px;overflow:hidden;box-shadow:0 0 35px #2ad9ff18;background:#090e20;min-height:420px}canvas{display:block;width:100%;height:auto;aspect-ratio:800/520;cursor:crosshair}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:#050916b8;padding:20px}.overlay.hidden{display:none}.panel h2{font-size:clamp(25px,4vw,40px);margin:0 0 8px;text-shadow:0 0 18px #ff4fd8}.panel p{color:#d1dcff;line-height:1.5}.btn{border:0;border-radius:10px;background:linear-gradient(100deg,#45e8ff,#ad70ff);color:#07101e;font-weight:800;padding:12px 17px;cursor:pointer;font-size:14px;box-shadow:0 0 18px #5ffcff2c}.btn:hover{filter:brightness(1.12)}.side{background:#10172b;border:1px solid #28375e;border-radius:16px;padding:16px}.side h3{margin:0 0 12px;color:var(--cyan);font-size:15px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}.stat{background:#080e20;border:1px solid #243052;border-radius:10px;padding:10px}.stat small{display:block;color:#9baad1;font-size:11px;text-transform:uppercase;letter-spacing:1px}.stat strong{font-size:23px}.controls{font-size:13px;color:#c8d2f0;line-height:1.6}.controls b{color:white}.cam{width:100%;height:130px;object-fit:cover;border-radius:10px;background:#050914;border:1px solid #34446e;transform:scaleX(-1);margin:8px 0}.status{font-size:12px;color:#aab8dd;min-height:34px}.sensitivity{margin:10px 0 12px;padding:10px;background:#080e20;border:1px solid #243052;border-radius:10px}.sensitivity label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#c8d2f0;margin-bottom:6px}.sensitivity input{width:100%;accent-color:#5ffcff;cursor:pointer}.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.row .btn{flex:1;padding:10px 8px}.foot{font-size:12px;color:#8999c5;margin-top:12px;text-align:center}.badge{display:inline-block;border:1px solid #3c547f;border-radius:20px;padding:4px 8px;color:#a9eaff;font-size:11px;margin:3px 2px 8px 0}@media(max-width:800px){.layout{grid-template-columns:1fr}.side{order:2}.game-wrap{min-height:0}.cam{height:180px}} 
+</style>
+</head>
+<body><main class="app"><header><div><h1>NEON <span>RUNNER</span></h1><div class="tag">DODGE • COLLECT • SURVIVE</div></div><div><span class="badge">HAND TRACKING</span><span class="badge">MOUSE + TOUCH</span></div></header>
+<div class="layout"><section class="game-wrap"><canvas id="game" width="800" height="520" aria-label="Neon Runner game"></canvas><div class="overlay" id="overlay"><div class="panel"><h2 id="overlayTitle">READY, RUNNER?</h2><p id="overlayText">Move your finger a little left/right to steer (adjust Finger sensitivity).<br>Collect coins. Dodge the neon blocks.</p><button class="btn" id="startBtn">START GAME</button><p style="font-size:12px">Keyboard: ← → or A / D · Space to start</p></div></div></section>
+<aside class="side"><h3>RUN STATS</h3><div class="stats"><div class="stat"><small>Score</small><strong id="score">0</strong></div><div class="stat"><small>Best</small><strong id="best">0</strong></div><div class="stat"><small>Coins</small><strong id="coins">0</strong></div><div class="stat"><small>Speed</small><strong id="speed">1.0x</strong></div></div><h3>FINGER SCAN CONTROL</h3><video id="camera" class="cam" autoplay muted playsinline></video><div class="status" id="camStatus">Camera is off. Enable it to steer with your index finger.</div><div class="sensitivity"><label for="sensitivity">Finger sensitivity <b id="sensitivityValue">2.4×</b></label><input id="sensitivity" type="range" min="1" max="3.5" step="0.1" value="2.4"><div style="font-size:11px;color:#8999c5">Higher sensitivity = reach corners with smaller finger movements.</div></div><div class="row"><button class="btn" id="cameraBtn">ENABLE CAMERA</button><button class="btn" id="pauseBtn">PAUSE</button></div><div class="controls"><b>How to play</b><br>☝️ Show one hand to the camera. Move your index fingertip slightly left/right to steer. Adjust Finger sensitivity below if needed.<br>🖱️ Move the mouse over the game to steer; click/tap to move quickly.<br>⌨️ Use ← → or A / D as another option.<br>🟡 Collect coins and avoid pink obstacles. Speed increases as you survive.</div></aside></div><div class="foot">Camera hand tracking uses MediaPipe Hands from a CDN and needs internet + camera permission. Mouse, touch, and keyboard work without camera access.</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),overlay=document.getElementById('overlay'),startBtn=document.getElementById('startBtn'),pauseBtn=document.getElementById('pauseBtn'),cameraBtn=document.getElementById('cameraBtn'),video=document.getElementById('camera'),camStatus=document.getElementById('camStatus');
+const scoreEl=document.getElementById('score'),bestEl=document.getElementById('best'),coinsEl=document.getElementById('coins'),speedEl=document.getElementById('speed'),sensitivityEl=document.getElementById('sensitivity'),sensitivityValue=document.getElementById('sensitivityValue');
+let fingerSensitivity=2.4;
+sensitivityEl.addEventListener('input',()=>{fingerSensitivity=Number(sensitivityEl.value);sensitivityValue.textContent=fingerSensitivity.toFixed(1)+'×'});
+let best=Number(localStorage.getItem('neonRunnerBest')||0),running=false,paused=false,gameOver=false,score=0,coins=0,speed=1,frame=0,last=0,obstacles=[],coinItems=[],particles=[],targetX=400,keys={},handActive=false,cameraStream=null,hands=null,mouseActive=false,handLoopBusy=false;
+bestEl.textContent=best;
+const player={x:400,y:435,w:38,h:46};
+function reset(){score=0;coins=0;speed=1;frame=0;obstacles=[];coinItems=[];particles=[];player.x=400;targetX=400;gameOver=false;updateStats()}
+function updateStats(){scoreEl.textContent=Math.floor(score);coinsEl.textContent=coins;speedEl.textContent=speed.toFixed(1)+'x'}
+function showOverlay(title,text,button){document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayText').innerHTML=text;startBtn.textContent=button;overlay.classList.remove('hidden')}
+function start(){reset();running=true;paused=false;overlay.classList.add('hidden');pauseBtn.textContent='PAUSE';last=performance.now();requestAnimationFrame(loop)}
+function endGame(){running=false;gameOver=true;if(Math.floor(score)>best){best=Math.floor(score);localStorage.setItem('neonRunnerBest',best);bestEl.textContent=best}showOverlay('GAME OVER',`Score: <b>${Math.floor(score)}</b> &nbsp; Coins: <b>${coins}</b><br>Best score: <b>${best}</b><br>Ready for another run?`,'PLAY AGAIN')}
+function togglePause(){if(!running&&!paused)return;if(!paused){paused=true;running=false;showOverlay('PAUSED','Take a breath, then jump back in.','RESUME');pauseBtn.textContent='RESUME'}else{paused=false;running=true;overlay.classList.add('hidden');pauseBtn.textContent='PAUSE';last=performance.now();requestAnimationFrame(loop)}}
+startBtn.addEventListener('click',()=>{if(paused)togglePause();else start()});pauseBtn.addEventListener('click',togglePause);
+function setTarget(clientX){const r=canvas.getBoundingClientRect();targetX=Math.max(25,Math.min(775,(clientX-r.left)/r.width*800))}
+canvas.addEventListener('mousemove',e=>{mouseActive=true;setTarget(e.clientX)});canvas.addEventListener('touchmove',e=>{if(e.touches[0]){setTarget(e.touches[0].clientX);e.preventDefault()}},{passive:false});canvas.addEventListener('click',e=>{setTarget(e.clientX);if(!running&&!paused)start()});
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.code==='Space'&&!running&&!paused)start();if(e.key.toLowerCase()==='p')togglePause()});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function drawBackground(){ctx.fillStyle='#070b18';ctx.fillRect(0,0,800,520);let grad=ctx.createLinearGradient(0,0,0,520);grad.addColorStop(0,'#0b1026');grad.addColorStop(1,'#101a38');ctx.fillStyle=grad;ctx.fillRect(0,0,800,520);ctx.strokeStyle='#35dfff22';ctx.lineWidth=1;for(let x=0;x<=800;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,520);ctx.stroke()}let shift=(frame*speed*2)%45;for(let y=-45+shift;y<540;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(800,y);ctx.stroke()}ctx.fillStyle='#ff4fd8';ctx.globalAlpha=.14;ctx.fillRect(0,0,7,520);ctx.fillRect(793,0,7,520);ctx.globalAlpha=1}
+function spawn(){const w=30+Math.random()*35;obstacles.push({x:25+Math.random()*(750-w),y:-55,w,h:25+Math.random()*28});if(Math.random()<.7)coinItems.push({x:40+Math.random()*720,y:-25,r:10,got:false})}
+function drawPlayer(){ctx.save();ctx.shadowBlur=24;ctx.shadowColor='#5ffcff';ctx.fillStyle='#5ffcff';roundRect(player.x-player.w/2,player.y-player.h/2,player.w,player.h,10);ctx.shadowBlur=0;ctx.fillStyle='#10263a';roundRect(player.x-player.w/2+7,player.y-player.h/2+8,player.w-14,8,4);ctx.fillStyle='#fff';ctx.fillRect(player.x-10,player.y+5,5,5);ctx.fillRect(player.x+5,player.y+5,5,5);ctx.restore()}
+function draw(){drawBackground();for(const o of obstacles){ctx.save();ctx.shadowBlur=18;ctx.shadowColor='#ff4fd8';ctx.fillStyle='#ff4fd8';roundRect(o.x,o.y,o.w,o.h,7);ctx.fillStyle='#ffc3f4';ctx.fillRect(o.x+7,o.y+5,o.w-14,3);ctx.restore()}for(const c of coinItems){if(c.got)continue;ctx.save();ctx.shadowBlur=18;ctx.shadowColor='#ffe66d';ctx.strokeStyle='#ffe66d';ctx.lineWidth=4;ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff4b0';ctx.beginPath();ctx.arc(c.x-2,c.y-2,3,0,Math.PI*2);ctx.fill();ctx.restore()}for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/25);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);ctx.globalAlpha=1}drawPlayer();if(handActive){ctx.strokeStyle='#5ffcff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(targetX,480,9,0,Math.PI*2);ctx.stroke()}}
+function burst(x,y,color){for(let i=0;i<12;i++)particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:25,color})}
+function loop(now){if(!running)return;const dt=Math.min(2,(now-last)/16.67||1);last=now;frame+=dt;speed=Math.min(2.8,1+score/650);score+=.22*speed*dt;if(keys.arrowleft||keys.a)targetX-=7*dt;if(keys.arrowright||keys.d)targetX+=7*dt;targetX=Math.max(24,Math.min(776,targetX));player.x+=(targetX-player.x)*Math.min(.22,.16*dt);if(frame>Math.max(22,54-speed*11)){spawn();frame=0}
+for(const o of obstacles)o.y+=4.2*speed*dt;for(const c of coinItems)c.y+=4.2*speed*dt;obstacles=obstacles.filter(o=>o.y<570);coinItems=coinItems.filter(c=>c.y<560&&!c.got);for(const o of obstacles){if(Math.abs(player.x-o.x-o.w/2)<(player.w+o.w)/2-5&&Math.abs(player.y-o.y-o.h/2)<(player.h+o.h)/2-5){burst(player.x,player.y,'#ff4fd8');draw();endGame();return}}for(const c of coinItems){if(!c.got&&Math.hypot(player.x-c.x,player.y-c.y)<27){c.got=true;coins++;score+=20;burst(c.x,c.y,'#ffe66d')}}for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}particles=particles.filter(p=>p.life>0);updateStats();draw();requestAnimationFrame(loop)}
+async function enableCamera(){
+  if(cameraStream){camStatus.textContent='Camera is already on. Show your hand clearly in the camera view.';return;}
+  if(!navigator.mediaDevices?.getUserMedia){camStatus.textContent='Camera is unavailable here. Open with run.bat in Chrome or Edge, or use mouse/keyboard.';return;}
+  if(!window.Hands){camStatus.textContent='Hand-tracking library did not load. Check your internet connection and refresh the page.';return;}
+  cameraBtn.disabled=true;camStatus.textContent='Requesting camera permission…';
+  try{
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+    video.srcObject=cameraStream;await video.play();
+    hands=new Hands({locateFile:file=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+    hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.55,minTrackingConfidence:.5});
+    hands.onResults(results=>{
+      const lm=results.multiHandLandmarks?.[0];
+      if(lm){handActive=true;const centeredX=0.5+(0.5-lm[8].x)*fingerSensitivity;targetX=Math.max(24,Math.min(776,centeredX*800));camStatus.textContent='Hand detected ✓ Small finger movements now steer farther.';}
+      else{handActive=false;camStatus.textContent='Camera on — show your whole hand clearly to the camera.';}
+    });
+    cameraBtn.textContent='CAMERA ON';camStatus.textContent='Camera ready. Show one hand to steer!';
+    const processFrame=async()=>{
+      if(!cameraStream)return;
+      if(video.readyState>=2&&!handLoopBusy){handLoopBusy=true;try{await hands.send({image:video});}catch(err){console.error('Hand tracking frame failed:',err);camStatus.textContent='Tracking error. Refresh and try again, or use mouse/keyboard.';}finally{handLoopBusy=false;}}
+      if(cameraStream)requestAnimationFrame(processFrame);
+    };
+    requestAnimationFrame(processFrame);
+  }catch(err){
+    console.error(err);if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}video.srcObject=null;handActive=false;
+    camStatus.textContent=err.name==='NotAllowedError'?'Camera permission was blocked. Allow camera access in your browser settings and try again.':'Could not start camera. Run run.bat, allow camera permission, and close other apps using the camera.';
+    cameraBtn.disabled=false;cameraBtn.textContent='ENABLE CAMERA';
+  }
+}
+cameraBtn.addEventListener('click',enableCamera);
+// Draw an attractive idle screen even before play.
+draw();
+})();
+</script></body></html>
